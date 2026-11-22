@@ -62,7 +62,18 @@
         </div>
       </section>
 
-      <section class="composer-wrap">
+      <div class="upload-row">
+  <label for="pdfInput" class="upload-btn">
+    📄 Upload Materi PDF
+  </label>
+  <input
+    type="file"
+    id="pdfInput"
+    accept="application/pdf"
+    hidden
+  >
+  <span id="pdfStatus">Belum ada materi</span>
+</div>
         <div class="mode-row">
           <span class="mode-label">MODE BELAJAR</span>
           <div class="mode-pills" role="group" aria-label="Pilih mode belajar">
