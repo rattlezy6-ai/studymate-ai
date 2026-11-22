@@ -342,51 +342,68 @@ Catatan: Jawaban diambil dari bagian PDF yang cocok dengan kata kunci pertanyaan
 }
 
 // GENERATE JAWABAN
-function generateAnswer(question) {
-  if (uploadedPDFText) {
-    return generatePDFAnswer(question);
-  }
 
-  const material = findMaterial(question);
-
-  if (!material) {
-    return `Materi tersebut belum tersedia dalam basis pengetahuan StudyMate AI.
-
-Topik yang tersedia:
-- Hukum Newton
-- Sistem Informasi Manajemen
-- Algoritma dan Pemrograman
-- Pancasila
-- Integral
-- Energi
-
-Kamu juga bisa mengunggah materi PDF.
-
-Catatan: StudyMate AI saat ini menggunakan basis pengetahuan lokal, bukan AI generatif.`;
-  }
+// GENERATE JAWABAN DENGAN HUGGING FACE
+async function generateAnswer(question) {
+  let systemPrompt = `Kamu adalah StudyMate AI, asisten belajar mahasiswa.
+Jawab dalam bahasa Indonesia yang jelas, ramah, dan mudah dipahami.
+Jelaskan langkah demi langkah jika pertanyaan membutuhkan perhitungan.`;
 
   if (currentMode === "summary") {
-    return `RANGKUMAN: ${material.title}
-
-${material.content}
-
-Kesimpulan:
-Materi ${material.title} merupakan konsep penting yang perlu dipahami dan dipelajari.`;
+    systemPrompt += `
+Buat rangkuman materi dengan poin-poin penting dan kesimpulan.`;
+  } else if (currentMode === "quiz") {
+    systemPrompt += `
+Buat 5 soal latihan pilihan ganda A sampai D.
+Sertakan kunci jawaban dan pembahasan singkat.`;
+  } else {
+    systemPrompt += `
+Jelaskan materi secara terstruktur dan berikan contoh jika diperlukan.`;
   }
 
-  if (currentMode === "quiz") {
-    return generateQuiz(material);
+  if (uploadedPDFText) {
+    systemPrompt += `
+
+Pengguna mengunggah dokumen: ${uploadedPDFName}.
+Gunakan isi dokumen berikut sebagai sumber utama jawaban.
+Jika jawabannya tidak ditemukan dalam dokumen, katakan dengan jujur.
+
+ISI DOKUMEN:
+${uploadedPDFText.slice(0, 12000)}`;
   }
 
-  return `PENJELASAN: ${material.title}
+  const response = await fetch("/api/chat", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      messages: [
+        {
+          role: "system",
+          content: systemPrompt
+        },
+        {
+          role: "user",
+          content: question
+        }
+      ]
+    })
+  });
 
-${material.content}
+  const data = await response.json();
 
-Semoga penjelasan ini membantu kamu memahami materi!`;
+  if (!response.ok) {
+    throw new Error(
+      data.error || "Gagal menghubungi Hugging Face."
+    );
+  }
+
+  return data.reply;
 }
 
 // KIRIM PERTANYAAN
-form.addEventListener("submit", event => {
+form.addEventListener("submit", async event => {
   event.preventDefault();
 
   const question = input.value.trim();
@@ -399,24 +416,18 @@ form.addEventListener("submit", event => {
   addMessage("user", question);
 
   input.value = "";
-
   sendBtn.disabled = true;
   sendBtn.querySelector("span").textContent = "Memproses";
 
-  setTimeout(() => {
-    try {
-      const answer = generateAnswer(question);
-      addMessage("ai", answer);
-    } catch (error) {
-      addMessage(
-        "ai",
-        "Terjadi kesalahan: " + error.message
-      );
-    }
+  try {
+    const answer = await generateAnswer(question);
+    addMessage("ai", answer);
+  } catch (error) {
+    addMessage("ai", "Terjadi kesalahan: " + error.message);
+  }
 
-    sendBtn.disabled = false;
-    sendBtn.querySelector("span").textContent = "Kirim";
-  }, 400);
+  sendBtn.disabled = false;
+  sendBtn.querySelector("span").textContent = "Kirim";
 });
 
 // ENTER UNTUK MENGIRIM
@@ -426,3 +437,5 @@ input.addEventListener("keydown", event => {
     form.requestSubmit();
   }
 });
+
+
