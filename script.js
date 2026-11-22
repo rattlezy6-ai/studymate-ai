@@ -5,10 +5,16 @@ const sendBtn = document.getElementById("sendBtn");
 const welcome = document.getElementById("welcome");
 const chatArea = document.getElementById("chatArea");
 const messages = document.getElementById("messages");
-const modeButtons = [...document.querySelectorAll(".mode-pill")];
+const modeButtons = [
+  ...document.querySelectorAll(".mode-pill")
+];
 
+// MODE BELAJAR
 let currentMode = "explain";
+let uploadedPDFText = "";
+let uploadedPDFName = "";
 
+// MATERI BAWAAN
 const knowledge = [
   {
     keywords: ["hukum newton", "newton"],
@@ -105,62 +111,88 @@ Ep = mgh.`
   }
 ];
 
-let uploadedPDFText = "";
-
+// ELEMEN UPLOAD PDF
 const pdfInput = document.getElementById("pdfInput");
 const pdfStatus = document.getElementById("pdfStatus");
 
-pdfjsLib.GlobalWorkerOptions.workerSrc =
-  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+// PERIKSA PDF.JS
+if (pdfInput && pdfStatus) {
+  if (typeof pdfjsLib !== "undefined") {
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
-pdfInput.addEventListener("change", async () => {
-  const file = pdfInput.files[0];
+    pdfInput.addEventListener("change", async () => {
+      const file = pdfInput.files[0];
 
-  if (!file) return;
+      if (!file) return;
 
-  if (file.type !== "application/pdf") {
-    pdfStatus.textContent = "File harus PDF.";
-    return;
-  }
+      if (file.type !== "application/pdf") {
+        pdfStatus.textContent = "File harus PDF.";
+        return;
+      }
 
-  pdfStatus.textContent = "Membaca PDF...";
+      if (file.size > 20 * 1024 * 1024) {
+        pdfStatus.textContent =
+          "Ukuran PDF maksimal 20 MB.";
+        return;
+      }
 
-  try {
-    const buffer = await file.arrayBuffer();
+      pdfStatus.textContent = "Sedang membaca PDF...";
 
-    const pdf = await pdfjsLib.getDocument({
-      data: buffer
-    }).promise;
+      try {
+        const buffer = await file.arrayBuffer();
 
-    let fullText = "";
+        const pdf = await pdfjsLib.getDocument({
+          data: buffer
+        }).promise;
 
-    for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
-      const page = await pdf.getPage(pageNumber);
-      const content = await page.getTextContent();
+        let fullText = "";
 
-      const pageText = content.items
-        .map(item => item.str)
-        .join(" ");
+        for (
+          let pageNumber = 1;
+          pageNumber <= pdf.numPages;
+          pageNumber++
+        ) {
+          pdfStatus.textContent =
+            `Membaca halaman ${pageNumber} dari ${pdf.numPages}...`;
 
-      fullText += pageText + "\n";
-    }
+          const page = await pdf.getPage(pageNumber);
+          const content = await page.getTextContent();
 
-    uploadedPDFText = fullText.trim();
+          const pageText = content.items
+            .map(item => item.str)
+            .join(" ");
 
-    if (!uploadedPDFText) {
-      throw new Error("Tidak ditemukan teks dalam PDF.");
-    }
+          fullText += pageText + "\n";
+        }
 
+        if (!fullText.trim()) {
+          throw new Error(
+            "PDF tidak memiliki teks yang bisa dibaca. Mungkin PDF berupa hasil scan."
+          );
+        }
+
+        uploadedPDFText = fullText.trim();
+        uploadedPDFName = file.name;
+
+        pdfStatus.textContent =
+          `Berhasil membaca ${pdf.numPages} halaman: ${file.name}`;
+
+      } catch (error) {
+        uploadedPDFText = "";
+        uploadedPDFName = "";
+
+        pdfStatus.textContent =
+          "Gagal membaca PDF: " + error.message;
+      }
+    });
+  } else {
     pdfStatus.textContent =
-      `Berhasil membaca ${pdf.numPages} halaman.`;
-
-  } catch (error) {
-    uploadedPDFText = "";
-    pdfStatus.textContent =
-      "Gagal membaca PDF: " + error.message;
+      "PDF.js gagal dimuat. Periksa koneksi internet.";
   }
-});
+}
 
+// GANTI MODE
 function setMode(mode) {
   currentMode = mode;
 
@@ -178,6 +210,7 @@ modeButtons.forEach(button => {
   });
 });
 
+// KARTU MATERI
 document.querySelectorAll(".quick-card").forEach(card => {
   card.addEventListener("click", () => {
     setMode(card.dataset.mode);
@@ -186,6 +219,7 @@ document.querySelectorAll(".quick-card").forEach(card => {
   });
 });
 
+// RESET PERCAKAPAN
 function resetChat() {
   messages.innerHTML = "";
   chatArea.classList.add("hidden");
@@ -197,6 +231,7 @@ function resetChat() {
 document.getElementById("newChatBtn")
   .addEventListener("click", resetChat);
 
+// TAMPILKAN PESAN
 function addMessage(role, text) {
   const row = document.createElement("div");
   row.className = `message ${role}`;
@@ -218,14 +253,18 @@ function addMessage(role, text) {
   });
 }
 
+// CARI MATERI BAWAAN
 function findMaterial(question) {
   const text = question.toLowerCase();
 
   return knowledge.find(item =>
-    item.keywords.some(keyword => text.includes(keyword))
+    item.keywords.some(keyword =>
+      text.includes(keyword)
+    )
   );
 }
 
+// BUAT LATIHAN SOAL
 function generateQuiz(material) {
   return `LATIHAN SOAL: ${material.title}
 
@@ -243,73 +282,77 @@ D. Tidak memiliki manfaat
 
 Kunci jawaban:
 1. B
-2. A
-
-Catatan: Soal ini merupakan latihan dasar berdasarkan topik materi.`;
+2. A`;
 }
 
+// CARI BAGIAN PDF YANG RELEVAN
+function searchPDF(question) {
+  const words = question.toLowerCase()
+    .split(/\s+/)
+    .filter(word => word.length > 3);
 
+  const sentences = uploadedPDFText
+    .split(/[.!?]\s+/)
+    .filter(sentence => sentence.trim().length > 20);
+
+  return sentences
+    .map(sentence => ({
+      sentence,
+      score: words.filter(word =>
+        sentence.toLowerCase().includes(word)
+      ).length
+    }))
+    .filter(item => item.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 12)
+    .map(item => item.sentence);
+}
+
+// JAWABAN BERDASARKAN PDF
+function generatePDFAnswer(question) {
+  if (currentMode === "summary") {
+    return `RANGKUMAN DARI PDF: ${uploadedPDFName}
+
+${uploadedPDFText.slice(0, 3500)}
+
+Catatan: Ini merupakan cuplikan teks awal dokumen, bukan rangkuman AI otomatis.`;
+  }
+
+  const relevant = searchPDF(question);
+
+  if (relevant.length === 0) {
+    return "Belum ditemukan bagian yang cocok dengan pertanyaanmu dalam PDF. Coba gunakan kata kunci lain.";
+  }
+
+  if (currentMode === "quiz") {
+    return `LATIHAN BERDASARKAN PDF: ${uploadedPDFName}
+
+${relevant.slice(0, 5).map((item, index) =>
+  `${index + 1}. Jelaskan konsep berikut:\n${item}`
+).join("\n\n")}
+
+Catatan: Soal dibuat berdasarkan potongan teks materi.`;
+  }
+
+  return `BERDASARKAN MATERI PDF: ${uploadedPDFName}
+
+${relevant.join("\n\n")}
+
+Catatan: Jawaban diambil dari bagian PDF yang cocok dengan kata kunci pertanyaan.`;
+}
+
+// GENERATE JAWABAN
 function generateAnswer(question) {
   if (uploadedPDFText) {
-    const text = uploadedPDFText;
-    const words = question.toLowerCase()
-      .split(/\s+/)
-      .filter(word => word.length > 3);
-
-    const sentences = text
-      .split(/[.!?]\s+/)
-      .filter(sentence => sentence.trim().length > 20);
-
-    const relevant = sentences
-      .map(sentence => ({
-        sentence,
-        score: words.filter(word =>
-          sentence.toLowerCase().includes(word)
-        ).length
-      }))
-      .filter(item => item.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 12)
-      .map(item => item.sentence);
-
-    if (currentMode === "summary") {
-      return "RANGKUMAN MATERI PDF\n\n" +
-        text.slice(0, 3500);
-    }
-
-    if (relevant.length === 0) {
-      return "Belum ditemukan bagian yang cocok dengan pertanyaanmu dalam PDF. Coba gunakan kata kunci lain.";
-    }
-
-    if (currentMode === "quiz") {
-      return "LATIHAN BERDASARKAN PDF\n\n" +
-        relevant.slice(0, 5).map((item, index) =>
-          `${index + 1}. Jelaskan konsep berikut: ${item}`
-        ).join("\n\n");
-    }
-
-    return "BERDASARKAN MATERI PDF:\n\n" +
-      relevant.join("\n\n");
+    return generatePDFAnswer(question);
   }
 
   const material = findMaterial(question);
 
   if (!material) {
-    return "Materi belum tersedia. Silakan unggah PDF atau pilih topik dari basis pengetahuan StudyMate AI.";
-  }
+    return `Materi tersebut belum tersedia dalam basis pengetahuan StudyMate AI.
 
-  if (currentMode === "summary") {
-    return `RANGKUMAN: ${material.title}\n\n${material.content}`;
-  }
-
-  if (currentMode === "quiz") {
-    return generateQuiz(material);
-  }
-
-  return `PENJELASAN: ${material.title}\n\n${material.content}`;
-}
-
-Coba tanyakan topik berikut:
+Topik yang tersedia:
 - Hukum Newton
 - Sistem Informasi Manajemen
 - Algoritma dan Pemrograman
@@ -317,7 +360,9 @@ Coba tanyakan topik berikut:
 - Integral
 - Energi
 
-StudyMate AI versi ini menggunakan basis pengetahuan lokal, bukan AI generatif.`;
+Kamu juga bisa mengunggah materi PDF.
+
+Catatan: StudyMate AI saat ini menggunakan basis pengetahuan lokal, bukan AI generatif.`;
   }
 
   if (currentMode === "summary") {
@@ -340,12 +385,13 @@ ${material.content}
 Semoga penjelasan ini membantu kamu memahami materi!`;
 }
 
+// KIRIM PERTANYAAN
 form.addEventListener("submit", event => {
   event.preventDefault();
 
   const question = input.value.trim();
 
-  if (!question) return;
+  if (!question || sendBtn.disabled) return;
 
   welcome.classList.add("hidden");
   chatArea.classList.remove("hidden");
@@ -358,15 +404,22 @@ form.addEventListener("submit", event => {
   sendBtn.querySelector("span").textContent = "Memproses";
 
   setTimeout(() => {
-    const answer = generateAnswer(question);
-
-    addMessage("ai", answer);
+    try {
+      const answer = generateAnswer(question);
+      addMessage("ai", answer);
+    } catch (error) {
+      addMessage(
+        "ai",
+        "Terjadi kesalahan: " + error.message
+      );
+    }
 
     sendBtn.disabled = false;
     sendBtn.querySelector("span").textContent = "Kirim";
   }, 400);
 });
 
+// ENTER UNTUK MENGIRIM
 input.addEventListener("keydown", event => {
   if (event.key === "Enter" && !event.shiftKey) {
     event.preventDefault();
