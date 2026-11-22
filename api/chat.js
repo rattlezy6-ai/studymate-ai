@@ -7,11 +7,11 @@ export default async function handler(req, res) {
   }
 
   try {
-    const token = process.env.HF_TOKEN;
+    const apiKey = process.env.OPENROUTER_API_KEY;
 
-    if (!token) {
+    if (!apiKey) {
       return res.status(500).json({
-        error: "HF_TOKEN belum diatur di Vercel."
+        error: "OPENROUTER_API_KEY belum diatur."
       });
     }
 
@@ -24,18 +24,20 @@ export default async function handler(req, res) {
     }
 
     const response = await fetch(
-      "https://router.huggingface.co/v1/chat/completions",
+      "https://openrouter.ai/api/v1/chat/completions",
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json"
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": "https://studymate-ai.vercel.app",
+          "X-Title": "StudyMate AI"
         },
         body: JSON.stringify({
-          model: "openai/gpt-oss-120b:cheapest",
+          model: "openrouter/free",
           messages,
-          max_tokens: 700,
-          temperature: 0.7
+          temperature: 0.7,
+          max_tokens: 1000
         })
       }
     );
@@ -44,7 +46,7 @@ export default async function handler(req, res) {
 
     if (!response.ok) {
       return res.status(response.status).json({
-        error: data.error || "Hugging Face API gagal."
+        error: data.error?.message || "OpenRouter API gagal."
       });
     }
 
