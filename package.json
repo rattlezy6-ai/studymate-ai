@@ -1,0 +1,10 @@
+{
+  "name": "studymate-ai",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "StudyMate AI - aplikasi asisten belajar berbasis Gemini API",
+  "scripts": {
+    "start": "vercel dev"
+  }
+}

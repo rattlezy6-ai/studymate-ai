@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="StudyMate AI - asisten belajar berbasis kecerdasan buatan.">
+  <title>StudyMate AI — Asisten Belajar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="/" aria-label="StudyMate AI beranda">
+        <span class="brand-mark">S</span>
+        <span>StudyMate <b>AI</b></span>
+      </a>
+      <div class="side-label">RUANG BELAJAR</div>
+      <button class="side-link active" id="newChatBtn"><span>＋</span> Percakapan baru</button>
+      <div class="side-note">
+        <div class="note-icon">✦</div>
+        <strong>Belajar lebih terarah</strong>
+        <p>Tanyakan materi, minta rangkuman, atau buat latihan soal dalam satu tempat.</p>
+      </div>
+      <div class="sidebar-bottom">
+        <div class="status-dot"></div>
+        <span>Asisten AI siap membantu</span>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="mobile-brand"><span class="brand-mark">S</span> StudyMate <b>AI</b></div>
+        <div class="top-tag"><span class="sparkle">✦</span> AI LEARNING ASSISTANT</div>
+        <div class="top-right">Belajar • Pahami • Berkembang</div>
+      </header>
+
+      <section class="content" id="content">
+        <div class="welcome" id="welcome">
+          <div class="eyebrow"><span class="eyebrow-line"></span> TEMAN BELAJAR DIGITALMU</div>
+          <h1>Halo! Mau belajar<br><span>apa hari ini?</span></h1>
+          <p class="intro">Tanyakan apa saja yang ingin kamu pahami. StudyMate AI akan membantu menjelaskannya langkah demi langkah.</p>
+
+          <div class="quick-grid">
+            <button class="quick-card" data-mode="explain" data-prompt="Jelaskan konsep dasar hukum Newton dengan bahasa sederhana dan berikan contoh dalam kehidupan sehari-hari.">
+              <span class="quick-icon lavender">✧</span><span class="quick-title">Pahami materi</span><span class="quick-desc">Pelajari konsep sulit dengan penjelasan sederhana.</span><span class="card-arrow">↗</span>
+            </button>
+            <button class="quick-card" data-mode="summary" data-prompt="Bantu saya membuat rangkuman yang terstruktur dari materi berikut:">
+              <span class="quick-icon mint">≡</span><span class="quick-title">Buat rangkuman</span><span class="quick-desc">Ubah materi panjang menjadi poin penting.</span><span class="card-arrow">↗</span>
+            </button>
+            <button class="quick-card" data-mode="quiz" data-prompt="Buatkan 5 latihan soal pilihan ganda tentang sistem informasi manajemen, sertakan kunci jawaban dan pembahasan di bagian akhir.">
+              <span class="quick-icon peach">✎</span><span class="quick-title">Latihan soal</span><span class="quick-desc">Uji pemahaman dengan soal dan pembahasan.</span><span class="card-arrow">↗</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="chat-area hidden" id="chatArea">
+          <div class="chat-heading"><span class="chat-heading-icon">✦</span><div><strong>Ruang belajar</strong><small>Diskusi bersama StudyMate AI</small></div></div>
+          <div class="messages" id="messages" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <section class="composer-wrap">
+        <div class="mode-row">
+          <span class="mode-label">MODE BELAJAR</span>
+          <div class="mode-pills" role="group" aria-label="Pilih mode belajar">
+            <button class="mode-pill selected" data-mode="explain">✧ Jelaskan</button>
+            <button class="mode-pill" data-mode="summary">≡ Rangkuman</button>
+            <button class="mode-pill" data-mode="quiz">✎ Latihan soal</button>
+          </div>
+        </div>
+        <form class="composer" id="chatForm">
+          <textarea id="promptInput" rows="1" maxlength="4000" placeholder="Tulis pertanyaan atau materi yang ingin kamu pelajari..." aria-label="Pertanyaan untuk AI"></textarea>
+          <div class="composer-footer">
+            <span class="input-hint">Enter untuk mengirim · Shift + Enter untuk baris baru</span>
+            <button class="send-btn" id="sendBtn" type="submit"><span>Kirim</span><b>↑</b></button>
+          </div>
+        </form>
+        <p class="disclaimer">StudyMate AI dapat membuat kesalahan. Periksa kembali informasi penting dari sumber tepercaya.</p>
+      </section>
+    </main>
+  </div>
+  <script src="/script.js"></script>
+</body>
+</html>
