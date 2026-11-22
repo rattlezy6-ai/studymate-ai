@@ -8,7 +8,102 @@ const messages = document.getElementById("messages");
 const modeButtons = [...document.querySelectorAll(".mode-pill")];
 
 let currentMode = "explain";
-let history = [];
+
+const knowledge = [
+  {
+    keywords: ["hukum newton", "newton"],
+    title: "Hukum Newton",
+    content: `Hukum Newton terdiri dari tiga hukum:
+
+1. Hukum Newton I (Inersia)
+Benda akan tetap diam atau bergerak lurus beraturan jika resultan gaya yang bekerja padanya sama dengan nol.
+
+2. Hukum Newton II
+Percepatan benda sebanding dengan resultan gaya dan berbanding terbalik dengan massanya.
+Rumus: ΣF = m × a
+
+3. Hukum Newton III
+Setiap aksi memiliki reaksi yang sama besar tetapi berlawanan arah.
+
+Contoh: Ketika seseorang mendorong dinding, dinding memberikan gaya reaksi yang berlawanan arah.`
+  },
+  {
+    keywords: ["sistem informasi manajemen", "sim"],
+    title: "Sistem Informasi Manajemen",
+    content: `Sistem Informasi Manajemen (SIM) adalah sistem yang digunakan untuk mengumpulkan, mengolah, menyimpan, dan menyajikan informasi guna membantu proses pengambilan keputusan dalam organisasi.
+
+Fungsi SIM:
+1. Mengumpulkan data.
+2. Mengolah data menjadi informasi.
+3. Menyediakan laporan.
+4. Membantu pengambilan keputusan.
+5. Meningkatkan efisiensi pekerjaan.
+
+Contoh: Sistem informasi akademik yang digunakan universitas untuk mengelola data mahasiswa dan nilai.`
+  },
+  {
+    keywords: ["algoritma", "pemrograman"],
+    title: "Algoritma dan Pemrograman",
+    content: `Algoritma adalah urutan langkah-langkah logis dan sistematis untuk menyelesaikan suatu masalah.
+
+Ciri-ciri algoritma:
+1. Memiliki input.
+2. Menghasilkan output.
+3. Langkah-langkahnya jelas.
+4. Memiliki urutan yang logis.
+5. Berakhir setelah sejumlah langkah tertentu.
+
+Pemrograman adalah proses menerjemahkan algoritma ke dalam bahasa pemrograman agar dapat dijalankan komputer.`
+  },
+  {
+    keywords: ["pancasila"],
+    title: "Pancasila",
+    content: `Pancasila merupakan dasar negara dan ideologi bangsa Indonesia.
+
+Lima sila Pancasila:
+1. Ketuhanan Yang Maha Esa.
+2. Kemanusiaan yang Adil dan Beradab.
+3. Persatuan Indonesia.
+4. Kerakyatan yang Dipimpin oleh Hikmat Kebijaksanaan dalam Permusyawaratan/Perwakilan.
+5. Keadilan Sosial bagi Seluruh Rakyat Indonesia.
+
+Pancasila menjadi pedoman dalam kehidupan bermasyarakat, berbangsa, dan bernegara.`
+  },
+  {
+    keywords: ["integral", "kalkulus"],
+    title: "Integral",
+    content: `Integral merupakan salah satu konsep dalam kalkulus yang digunakan untuk menentukan antiturunan dan menghitung luas daerah.
+
+Aturan dasar:
+∫ xⁿ dx = xⁿ⁺¹/(n+1) + C, untuk n ≠ -1.
+
+Keterangan:
+- x adalah variabel.
+- n adalah pangkat.
+- C adalah konstanta integrasi.
+
+Contoh:
+∫ x² dx = x³/3 + C.`
+  },
+  {
+    keywords: ["energi"],
+    title: "Energi",
+    content: `Energi adalah kemampuan untuk melakukan usaha.
+
+Bentuk energi antara lain:
+1. Energi kinetik.
+2. Energi potensial.
+3. Energi panas.
+4. Energi listrik.
+5. Energi kimia.
+
+Rumus energi kinetik:
+Ek = ½mv²
+
+Rumus energi potensial:
+Ep = mgh.`
+  }
+];
 
 function setMode(mode) {
   currentMode = mode;
@@ -32,24 +127,19 @@ document.querySelectorAll(".quick-card").forEach(card => {
     setMode(card.dataset.mode);
     input.value = card.dataset.prompt;
     input.focus();
-    input.style.height = "auto";
-    input.style.height =
-      Math.min(input.scrollHeight, 130) + "px";
   });
 });
 
-document.getElementById("newChatBtn")
-  .addEventListener("click", resetChat);
-
 function resetChat() {
-  history = [];
   messages.innerHTML = "";
   chatArea.classList.add("hidden");
   welcome.classList.remove("hidden");
   input.value = "";
-  input.focus();
   setMode("explain");
 }
+
+document.getElementById("newChatBtn")
+  .addEventListener("click", resetChat);
 
 function addMessage(role, text) {
   const row = document.createElement("div");
@@ -70,29 +160,81 @@ function addMessage(role, text) {
     behavior: "smooth",
     block: "nearest"
   });
-
-  return bubble;
 }
 
-input.addEventListener("input", () => {
-  input.style.height = "auto";
-  input.style.height =
-    Math.min(input.scrollHeight, 130) + "px";
-});
+function findMaterial(question) {
+  const text = question.toLowerCase();
 
-input.addEventListener("keydown", event => {
-  if (event.key === "Enter" && !event.shiftKey) {
-    event.preventDefault();
-    form.requestSubmit();
+  return knowledge.find(item =>
+    item.keywords.some(keyword => text.includes(keyword))
+  );
+}
+
+function generateQuiz(material) {
+  return `LATIHAN SOAL: ${material.title}
+
+1. Apa pengertian ${material.title}?
+A. Konsep yang tidak berhubungan dengan materi
+B. Konsep dasar yang dipelajari dalam materi
+C. Kegiatan tanpa tujuan
+D. Tidak memiliki pengertian
+
+2. Mengapa materi ${material.title} penting dipelajari?
+A. Untuk menambah pemahaman
+B. Untuk menghindari pembelajaran
+C. Untuk menghilangkan informasi
+D. Tidak memiliki manfaat
+
+Kunci jawaban:
+1. B
+2. A
+
+Catatan: Soal ini merupakan latihan dasar berdasarkan topik materi.`;
+}
+
+function generateAnswer(question) {
+  const material = findMaterial(question);
+
+  if (!material) {
+    return `Maaf, materi tersebut belum tersedia dalam basis pengetahuan StudyMate AI.
+
+Coba tanyakan topik berikut:
+- Hukum Newton
+- Sistem Informasi Manajemen
+- Algoritma dan Pemrograman
+- Pancasila
+- Integral
+- Energi
+
+StudyMate AI versi ini menggunakan basis pengetahuan lokal, bukan AI generatif.`;
   }
-});
 
-form.addEventListener("submit", async event => {
+  if (currentMode === "summary") {
+    return `RANGKUMAN: ${material.title}
+
+${material.content}
+
+Kesimpulan:
+Materi ${material.title} merupakan konsep penting yang perlu dipahami dan dipelajari.`;
+  }
+
+  if (currentMode === "quiz") {
+    return generateQuiz(material);
+  }
+
+  return `PENJELASAN: ${material.title}
+
+${material.content}
+
+Semoga penjelasan ini membantu kamu memahami materi!`;
+}
+
+form.addEventListener("submit", event => {
   event.preventDefault();
 
   const question = input.value.trim();
 
-  if (!question || sendBtn.disabled) return;
+  if (!question) return;
 
   welcome.classList.add("hidden");
   chatArea.classList.remove("hidden");
@@ -100,62 +242,23 @@ form.addEventListener("submit", async event => {
   addMessage("user", question);
 
   input.value = "";
-  input.style.height = "auto";
 
   sendBtn.disabled = true;
   sendBtn.querySelector("span").textContent = "Memproses";
 
-  const loading = addMessage(
-    "ai",
-    "StudyMate sedang berpikir..."
-  );
+  setTimeout(() => {
+    const answer = generateAnswer(question);
 
-  loading.classList.add("typing");
+    addMessage("ai", answer);
 
-  try {
-    const response = await fetch("/api/chat", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        prompt: question,
-        mode: currentMode,
-        history: history.slice(-10)
-      })
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(
-        data.error || "Gagal menghubungi AI."
-      );
-    }
-
-    const answer = data.answer;
-
-    if (!answer) {
-      throw new Error("AI tidak memberikan jawaban.");
-    }
-
-    loading.classList.remove("typing");
-    loading.textContent = answer;
-
-    history.push(
-      { role: "user", content: question },
-      { role: "assistant", content: answer }
-    );
-
-  } catch (error) {
-    loading.classList.remove("typing");
-    loading.classList.add("error");
-    loading.textContent =
-      "Terjadi kesalahan: " + error.message;
-
-  } finally {
     sendBtn.disabled = false;
     sendBtn.querySelector("span").textContent = "Kirim";
-    input.focus();
+  }, 400);
+});
+
+input.addEventListener("keydown", event => {
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
+    form.requestSubmit();
   }
 });
