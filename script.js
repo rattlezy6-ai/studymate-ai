@@ -9,43 +9,16 @@ const modeButtons = [...document.querySelectorAll(".mode-pill")];
 
 let currentMode = "explain";
 let history = [];
-let generatorPromise = null;
-
-const modeInstructions = {
-  explain: "Jelaskan materi dengan bahasa Indonesia yang sederhana, runtut, dan mudah dipahami. Berikan contoh jika membantu.",
-  summary: "Buat rangkuman yang terstruktur, ringkas, dan mencakup gagasan penting. Gunakan poin-poin jika sesuai.",
-  quiz: "Buat latihan soal berdasarkan topik yang diberikan. Sertakan kunci jawaban dan pembahasan setelah soal."
-};
-
-// Memuat model AI dari Hugging Face
-async function getGenerator() {
-  if (!generatorPromise) {
-    generatorPromise = (async () => {
-      const { pipeline, env } = await import(
-        "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1"
-      );
-
-      env.allowLocalModels = false;
-
-      return await pipeline(
-        "text-generation",
-        "onnx-community/Qwen2.5-0.5B-Instruct",
-        { dtype: "q4" }
-      );
-    })();
-  }
-
-  return generatorPromise;
-}
 
 function setMode(mode) {
   currentMode = mode;
-  modeButtons.forEach(button =>
+
+  modeButtons.forEach(button => {
     button.classList.toggle(
       "selected",
       button.dataset.mode === mode
-    )
-  );
+    );
+  });
 }
 
 modeButtons.forEach(button => {
@@ -78,7 +51,7 @@ function resetChat() {
   setMode("explain");
 }
 
-function addMessage(role, text, extraClass = "") {
+function addMessage(role, text) {
   const row = document.createElement("div");
   row.className = `message ${role}`;
 
@@ -87,7 +60,7 @@ function addMessage(role, text, extraClass = "") {
   avatar.textContent = role === "user" ? "K" : "S";
 
   const bubble = document.createElement("div");
-  bubble.className = "bubble " + extraClass;
+  bubble.className = "bubble";
   bubble.textContent = text;
 
   row.append(avatar, bubble);
@@ -134,75 +107,52 @@ form.addEventListener("submit", async event => {
 
   const loading = addMessage(
     "ai",
-    "StudyMate sedang menyiapkan model AI..."
+    "StudyMate sedang berpikir..."
   );
 
   loading.classList.add("typing");
 
   try {
-    const generator = await getGenerator();
-
-    loading.textContent = "StudyMate sedang menyusun jawaban...";
-
-    const modelMessages = [
-      {
-        role: "system",
-        content: `Kamu adalah StudyMate AI, asisten belajar yang ramah.
-Jawab menggunakan bahasa Indonesia.
-Mode belajar: ${currentMode}
-Instruksi: ${modeInstructions[currentMode]}
-Gunakan penjelasan sederhana, runtut, dan berikan contoh jika diperlukan.`
+    const response = await fetch("/api/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
       },
-
-      ...history.slice(-6).map(item => ({
-        role: item.role === "user" ? "user" : "assistant",
-        content: item.text
-      })),
-
-      {
-        role: "user",
-        content: question
-      }
-    ];
-
-    const result = await generator(modelMessages, {
-      max_new_tokens: 220,
-      do_sample: false
+      body: JSON.stringify({
+        prompt: question,
+        mode: currentMode,
+        history: history.slice(-10)
+      })
     });
 
-    const generated = result[0].generated_text;
+    const data = await response.json();
 
-    let answer = "";
-
-    if (Array.isArray(generated)) {
-      answer = generated[generated.length - 1]?.content || "";
-    } else {
-      answer = generated || "";
+    if (!response.ok) {
+      throw new Error(
+        data.error || "Gagal menghubungi AI."
+      );
     }
 
-    answer = answer.trim();
+    const answer = data.answer;
 
     if (!answer) {
-      throw new Error("AI belum memberikan jawaban. Coba lagi.");
+      throw new Error("AI tidak memberikan jawaban.");
     }
 
     loading.classList.remove("typing");
     loading.textContent = answer;
 
     history.push(
-      { role: "user", text: question },
-      { role: "model", text: answer }
+      { role: "user", content: question },
+      { role: "assistant", content: answer }
     );
 
   } catch (error) {
-    console.error("StudyMate error:", error);
-
     loading.classList.remove("typing");
     loading.classList.add("error");
-
     loading.textContent =
-      "Gagal menjalankan AI. Periksa koneksi internet, ruang penyimpanan, dan kemampuan perangkat. Detail: " +
-      (error.message || "Terjadi kesalahan.");
+      "Terjadi kesalahan: " + error.message;
+
   } finally {
     sendBtn.disabled = false;
     sendBtn.querySelector("span").textContent = "Kirim";
