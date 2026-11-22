@@ -7,44 +7,35 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { prompt, mode } = req.body;
+    const token = process.env.HF_TOKEN;
 
-    if (!prompt) {
-      return res.status(400).json({
-        error: "Pertanyaan tidak boleh kosong."
+    if (!token) {
+      return res.status(500).json({
+        error: "HF_TOKEN belum diatur di Vercel."
       });
     }
 
-    const instructions = {
-      explain: "Jelaskan materi dengan bahasa Indonesia sederhana dan berikan contoh.",
-      summary: "Buat rangkuman materi secara terstruktur dan ringkas.",
-      quiz: "Buat latihan soal beserta kunci jawaban dan pembahasannya."
-    };
+    const { messages } = req.body || {};
+
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return res.status(400).json({
+        error: "Pesan tidak boleh kosong."
+      });
+    }
 
     const response = await fetch(
-      "https://api.groq.com/openai/v1/chat/completions",
+      "https://router.huggingface.co/v1/chat/completions",
       {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${process.env.GROQ_API_KEY}`
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          model: "llama-3.3-70b-versatile",
-          messages: [
-            {
-              role: "system",
-              content: `Kamu adalah StudyMate AI, asisten belajar.
-Jawab dalam bahasa Indonesia.
-${instructions[mode] || instructions.explain}`
-            },
-            {
-              role: "user",
-              content: prompt
-            }
-          ],
-          temperature: 0.7,
-          max_tokens: 1024
+          model: "openai/gpt-oss-120b:cheapest",
+          messages,
+          max_tokens: 700,
+          temperature: 0.7
         })
       }
     );
@@ -53,17 +44,17 @@ ${instructions[mode] || instructions.explain}`
 
     if (!response.ok) {
       return res.status(response.status).json({
-        error: data.error?.message || "Gagal menghubungi Groq API."
+        error: data.error || "Hugging Face API gagal."
       });
     }
 
     return res.status(200).json({
-      answer: data.choices[0].message.content
+      reply: data.choices?.[0]?.message?.content || "Tidak ada jawaban."
     });
 
   } catch (error) {
     return res.status(500).json({
-      error: error.message || "Terjadi kesalahan server."
+      error: error.message
     });
   }
 }
