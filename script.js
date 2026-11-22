@@ -105,6 +105,62 @@ Ep = mgh.`
   }
 ];
 
+let uploadedPDFText = "";
+
+const pdfInput = document.getElementById("pdfInput");
+const pdfStatus = document.getElementById("pdfStatus");
+
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+pdfInput.addEventListener("change", async () => {
+  const file = pdfInput.files[0];
+
+  if (!file) return;
+
+  if (file.type !== "application/pdf") {
+    pdfStatus.textContent = "File harus PDF.";
+    return;
+  }
+
+  pdfStatus.textContent = "Membaca PDF...";
+
+  try {
+    const buffer = await file.arrayBuffer();
+
+    const pdf = await pdfjsLib.getDocument({
+      data: buffer
+    }).promise;
+
+    let fullText = "";
+
+    for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+      const page = await pdf.getPage(pageNumber);
+      const content = await page.getTextContent();
+
+      const pageText = content.items
+        .map(item => item.str)
+        .join(" ");
+
+      fullText += pageText + "\n";
+    }
+
+    uploadedPDFText = fullText.trim();
+
+    if (!uploadedPDFText) {
+      throw new Error("Tidak ditemukan teks dalam PDF.");
+    }
+
+    pdfStatus.textContent =
+      `Berhasil membaca ${pdf.numPages} halaman.`;
+
+  } catch (error) {
+    uploadedPDFText = "";
+    pdfStatus.textContent =
+      "Gagal membaca PDF: " + error.message;
+  }
+});
+
 function setMode(mode) {
   currentMode = mode;
 
@@ -192,11 +248,66 @@ Kunci jawaban:
 Catatan: Soal ini merupakan latihan dasar berdasarkan topik materi.`;
 }
 
+
 function generateAnswer(question) {
+  if (uploadedPDFText) {
+    const text = uploadedPDFText;
+    const words = question.toLowerCase()
+      .split(/\s+/)
+      .filter(word => word.length > 3);
+
+    const sentences = text
+      .split(/[.!?]\s+/)
+      .filter(sentence => sentence.trim().length > 20);
+
+    const relevant = sentences
+      .map(sentence => ({
+        sentence,
+        score: words.filter(word =>
+          sentence.toLowerCase().includes(word)
+        ).length
+      }))
+      .filter(item => item.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 12)
+      .map(item => item.sentence);
+
+    if (currentMode === "summary") {
+      return "RANGKUMAN MATERI PDF\n\n" +
+        text.slice(0, 3500);
+    }
+
+    if (relevant.length === 0) {
+      return "Belum ditemukan bagian yang cocok dengan pertanyaanmu dalam PDF. Coba gunakan kata kunci lain.";
+    }
+
+    if (currentMode === "quiz") {
+      return "LATIHAN BERDASARKAN PDF\n\n" +
+        relevant.slice(0, 5).map((item, index) =>
+          `${index + 1}. Jelaskan konsep berikut: ${item}`
+        ).join("\n\n");
+    }
+
+    return "BERDASARKAN MATERI PDF:\n\n" +
+      relevant.join("\n\n");
+  }
+
   const material = findMaterial(question);
 
   if (!material) {
-    return `Maaf, materi tersebut belum tersedia dalam basis pengetahuan StudyMate AI.
+    return "Materi belum tersedia. Silakan unggah PDF atau pilih topik dari basis pengetahuan StudyMate AI.";
+  }
+
+  if (currentMode === "summary") {
+    return `RANGKUMAN: ${material.title}\n\n${material.content}`;
+  }
+
+  if (currentMode === "quiz") {
+    return generateQuiz(material);
+  }
+
+  return `PENJELASAN: ${material.title}\n\n${material.content}`;
+}
 
 Coba tanyakan topik berikut:
 - Hukum Newton
